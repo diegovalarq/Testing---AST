@@ -26,16 +26,13 @@ class OperatorEqualsTransformer(NodeTransformer):
                     op=aug_assign_operation_node,
                     value=aug_assign_value_node
                     )
-            
-
+        
         return statements
-
-
 
 
 class OperatorEqualsCommand(RewriterCommand):
 
     def apply(self, ast):
-        print(dump(ast))   #imprime el árbol AST
+        #print(dump(ast))   #imprime el árbol AST
         new_tree = fix_missing_locations(OperatorEqualsTransformer().visit(ast))
         return new_tree
