@@ -13,6 +13,13 @@ class SimplifiedIfTransformer(NodeTransformer):
         self.parent_node_type = None
 
 
+    def visit_Return(self, node: Return):
+        self.parent_node_type = Return
+        NodeTransformer.generic_visit(self, node)
+        self.simplify_compare(node)
+        self.simplify_boolop(node)
+        self.simplify_unarynot(node)
+        self.parent_node_type = None
 
     def visit_IfExp(self, node: IfExp):
 
