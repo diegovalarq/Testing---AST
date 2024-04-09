@@ -8,53 +8,38 @@ from core.rewriter import RewriterCommand
 
 class SimplifiedIfTransformer(NodeTransformer):
 
-    def __init__(self):
-        super().__init__()
-        self.parent_node_type = None
-
-
-    def visit_Return(self, node: Return):
-        self.parent_node_type = Return
-        NodeTransformer.generic_visit(self, node)
-        self.simplify_compare(node)
-        self.simplify_boolop(node)
-        self.simplify_unarynot(node)
-        self.parent_node_type = None
 
     def visit_IfExp(self, node: IfExp):
+        statements = node
 
-        if isinstance(node.test, Compare):
-            return self.simplify_compare(node) 
-        elif isinstance(node.test, BoolOp):
-            return self.simplify_boolop(node)
-        elif isinstance(node.test, UnaryOp) and isinstance(node.test.op, Not):
-            return self.simplify_unarynot(node)
-        else:
-            return self.generic_visit(node)
-        
-    def simplify_compare(self, node: IfExp):
-        if isinstance(node.test.ops[0], (Eq, NotEq, Lt, LtE, Gt, GtE)):
-            return node.body
-        else:
-            return self.generic_visit(node)
+        # ifexp(body, test, orelse)
+        # return true if x > y else false
+        # return fasle if z else true
+        # z = node.test -> UnaryOp
+
+        # true = node.body
+        # x > y = node.test -> Compare(>)
+        # false = node.orelse
+
+    # https://docs.python.org/3/library/ast.html#abstract-grammar
+    # unaryop = Invert | Not | UAdd | USub
+
+    # cmpop = Eq | NotEq | Lt | LtE | Gt | GtE | Is | IsNot | In | NotIn
+
+        if isinstance(node.test, Compare) or isinstance(node.test, UnaryOp):
+            if isinstance(node.body, Constant):
+                if node.body.value == True:
+                    return node.test
+                elif node.body.value == False:
+                    return UnaryOp(op=Not(), operand=node.test)
     
-    def simplify_boolop(self, node: IfExp):
-        if isinstance(node.test.op, (And, Or)):
-            return node.body
-        else:
-            return self.generic_visit(node)
-        
-    def simplify_unarynot(self, node: IfExp):
-        return node.orelse
-
+        return statements
 
 
 class SimplifiedIfCommand(RewriterCommand):
 
     def apply(self, ast):
-        # print(dump(ast))   #imprime el árbol AST
+        #print(dump(parse(ast.body[0])))
         new_tree = fix_missing_locations(SimplifiedIfTransformer().visit(ast))
         return new_tree
-        # transformed = SimplifiedIfTransformer()
-        # return transformed
 
