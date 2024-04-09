@@ -33,6 +33,6 @@ class OperatorEqualsTransformer(NodeTransformer):
 class OperatorEqualsCommand(RewriterCommand):
 
     def apply(self, ast):
-        #print(dump(ast))   #imprime el árbol AST
+        #print(dump(ast))
         new_tree = fix_missing_locations(OperatorEqualsTransformer().visit(ast))
         return new_tree
