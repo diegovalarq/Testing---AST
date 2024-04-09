@@ -1,4 +1,4 @@
-from _ast import If
+from _ast import FunctionDef, If, IfExp
 from ast import *
 from typing import Any
 from core.rewriter import RewriterCommand
@@ -8,41 +8,39 @@ from core.rewriter import RewriterCommand
 
 class SimplifiedIfTransformer(NodeTransformer):
 
-    # def __init__(self):
-    #     super().__init__()
+    def __init__(self):
+        super().__init__()
+        self.parent_node_type = None
 
-    def visit_If(self, node):
-        NodeTransformer.generic_visit(self, node)
-        if isinstance(node.test, Compare) and len(node.test.ops) == 1 and len(node.test.comparators) == 1:
-            operand = node.test.ops[0]
-            left = node.test.left
-            right = node.test.comparators[0]
 
-            if isinstance(operand, (Eq, NotEq, Lt, LtE, Gt, GtE)):
-                if isinstance(operand, (Eq, NotEq)):
-                    return Compare(left, [operand], [right])
-                elif isinstance(operand, Lt):
-                    return Compare(left, [GtE()], [right])
-                elif isinstance(operand, LtE):
-                    return Compare(left, [Gt()], [right])
-                elif isinstance(operand, Gt):
-                    return Compare(left, [LtE()], [right])
-                elif isinstance(operand, GtE):
-                    return Compare(left, [Lt()], [right])
-            elif isinstance(operand, IsNot):
-                return UnaryOp(Not(), node.test.left)
+
+    def visit_IfExp(self, node: IfExp):
+
+        if isinstance(node.test, Compare):
+            return self.simplify_compare(node) 
+        elif isinstance(node.test, BoolOp):
+            return self.simplify_boolop(node)
+        elif isinstance(node.test, UnaryOp) and isinstance(node.test.op, Not):
+            return self.simplify_unarynot(node)
+        else:
+            return self.generic_visit(node)
         
-        return self.generic_visit(node)
-
-
-    # def visit_If(self, node):
-    #     NodeTransformer.generic_visit(self, node)
-    #     statements = node
-    #     if isinstance(node.test, UnaryOp):
-    #         if isinstance(node.test.op, Not):
-    #             return If(test=node.test.operand, body=node.orelse, orelse=node.body)
-    #     return statements
+    def simplify_compare(self, node: IfExp):
+        if isinstance(node.test.ops[0], (Eq, NotEq, Lt, LtE, Gt, GtE)):
+            return node.body
+        else:
+            return self.generic_visit(node)
+    
+    def simplify_boolop(self, node: IfExp):
+        if isinstance(node.test.op, (And, Or)):
+            return node.body
+        else:
+            return self.generic_visit(node)
         
+    def simplify_unarynot(self, node: IfExp):
+        return node.orelse
+
+
 
 class SimplifiedIfCommand(RewriterCommand):
 
