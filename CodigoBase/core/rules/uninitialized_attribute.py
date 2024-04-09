@@ -1,5 +1,3 @@
-from _ast import Attribute
-from typing import Any
 from ..rule import *
 
 # Clases que permiten detectar si algun atributo no fue inicializado.
